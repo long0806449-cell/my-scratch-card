@@ -1,780 +1,229 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>幸運刮刮樂 - 7大好禮專屬抽獎</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Canvas Confetti CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700;900&display=swap" rel="stylesheet">
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            gold: '#ecc94b',
-                            darkGold: '#b7791f',
-                            deepRed: '#9b2c2c',
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['"Noto Sans TC"', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background: radial-gradient(circle at center, #2d0b00 0%, #0f0200 100%);
-            min-height: 100vh;
-            touch-action: manipulation;
-        }
-
-        .gold-border {
-            background: linear-gradient(135deg, #ffe066 0%, #f59e0b 50%, #b45309 100%);
-            padding: 3px;
-            border-radius: 1rem;
-        }
-
-        .gold-text {
-            background: linear-gradient(180deg, #fffbeb 0%, #fef08a 30%, #f59e0b 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-        }
-
-        .scratch-container {
-            position: relative;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-
-        canvas.scratch-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-            touch-action: none;
-            border-radius: 0.75rem;
-            z-index: 10;
-        }
-
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-        
-        .shimmer-effect::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 50%; height: 100%;
-            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
-            transform: skewX(-25deg);
-            animation: shimmer 3s infinite;
-        }
-    </style>
-</head>
-<body class="text-slate-100 pb-12">
-
-    <!-- Header Section -->
-    <header class="py-6 px-4 text-center relative overflow-hidden">
-        <div class="max-w-3xl mx-auto relative z-10">
-            <span class="inline-block px-4 py-1 rounded-full bg-amber-500/20 text-amber-300 font-semibold text-xs md:text-sm border border-amber-500/40 mb-3 tracking-widest uppercase">
-                ✨ 專屬好禮 刮刮樂抽獎 ✨
-            </span>
-            <h1 class="text-3xl md:text-5xl font-black text-amber-300 tracking-tight gold-text mb-2">
-                7位幸運兒限定刮刮樂
-            </h1>
-            <p id="headerSubText" class="text-slate-300 text-sm max-w-xl mx-auto mt-2">
-                請輸入您的邀請碼或開啟專屬邀請連結，刮開銀漆即可揭曉獎項與領獎！
-            </p>
-        </div>
-        
-        <!-- Admin Dashboard Trigger -->
-        <button onclick="openAdminModal()" class="absolute top-4 right-4 bg-black/50 hover:bg-black/80 text-amber-400 hover:text-amber-200 p-2.5 rounded-full text-xs transition border border-amber-500/40 shadow-lg z-20 flex items-center gap-1.5" title="主辦人專區：生成專屬網址與領獎名單">
-            <i class="fa-solid fa-user-shield text-sm"></i>
-            <span class="hidden sm:inline">主辦人專區</span>
-        </button>
-    </header>
-
-    <!-- Main Content Area -->
-    <main class="max-w-4xl mx-auto px-4">
-
-        <!-- Dedicated Ticket View (Activated when opening ?ticket=1~7 or entering code) -->
-        <div id="singleTicketView" class="hidden max-w-md mx-auto">
-            <div class="mb-4 flex items-center justify-between text-xs text-amber-300 bg-slate-900/80 px-4 py-2.5 rounded-xl border border-amber-500/30">
-                <span><i class="fa-solid fa-key mr-1"></i> 您的邀請代碼：<strong id="currentTicketBadge" class="text-white font-mono">TICKET-1</strong></span>
-                <button onclick="backToOverview()" class="text-slate-400 hover:text-amber-200 underline">切換卡片</button>
-            </div>
-
-            <!-- Single Card Scratch Box -->
-            <div class="gold-border shadow-2xl relative overflow-hidden">
-                <div id="singleScratchBox" class="scratch-container bg-slate-950 rounded-xl overflow-hidden aspect-[4/5] relative flex flex-col items-center justify-between p-5">
-                    
-                    <!-- Underneath Prize Layer -->
-                    <div class="w-full h-full flex flex-col items-center justify-between text-center select-none py-2">
-                        <span id="prizeBadge" class="text-xs font-bold px-3 py-1 rounded-full bg-red-900/70 text-red-200 border border-red-500/40">
-                            🎉 恭喜您獲得
-                        </span>
-                        
-                        <div id="prizeSvgContainer" class="w-full h-48 my-2 flex items-center justify-center">
-                            <!-- SVG Rendered Here -->
-                        </div>
-
-                        <div>
-                            <h3 id="prizeTitle" class="text-lg md:text-xl font-black text-amber-200 leading-snug px-2">
-                                獎品名稱
-                            </h3>
-                            <p id="prizeSub" class="text-xs text-slate-400 mt-1">1位 幸運得主</p>
-                        </div>
-
-                        <!-- Action Button under card -->
-                        <div id="cardActionArea" class="w-full mt-3">
-                            <button id="claimFormBtn" onclick="openClaimModal()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black rounded-xl shadow-lg hover:brightness-110 active:scale-98 transition flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-pen-to-square"></i> 填寫領獎資料 (鎖定卡片)
-                            </button>
-                            <div id="alreadyClaimedBadge" class="hidden w-full py-3 bg-emerald-950/90 border border-emerald-500/50 rounded-xl text-emerald-300 text-xs text-center font-bold">
-                                <i class="fa-solid fa-circle-check mr-1 text-emerald-400"></i> 您已完成領獎登記（已成功鎖定）
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Scratch Overlay Canvas -->
-                    <canvas id="ticketCanvas" class="scratch-canvas"></canvas>
-                </div>
-            </div>
-
-            <!-- Lock Info Notice -->
-            <div id="lockNotice" class="mt-4 p-3 bg-slate-900/90 border border-slate-800 rounded-xl text-center text-xs text-slate-400">
-                <i class="fa-solid fa-lock text-amber-400 mr-1"></i> 提示：刮開並填寫領獎資料後，此專屬卡片即被鎖定，不可重複刮卡或變更。
-            </div>
-        </div>
-
-        <!-- Overview Mode (List of 7 cards + Access Code Input) -->
-        <div id="overviewView" class="space-y-6">
-            <!-- Access Code Quick Input Box -->
-            <div class="max-w-md mx-auto bg-slate-900/90 border border-amber-500/40 rounded-2xl p-5 shadow-xl text-center">
-                <h3 class="text-base font-bold text-amber-300 mb-2">
-                    <i class="fa-solid fa-ticket text-amber-400 mr-1.5"></i> 輸入您的專屬邀請碼
-                </h3>
-                <p class="text-xs text-slate-400 mb-3">請輸入主辦人發給您的邀請碼（例如 TICKET-1 至 TICKET-7）</p>
-                <div class="flex gap-2">
-                    <input type="text" id="passcodeInput" placeholder="輸入邀請碼 (例: TICKET-1)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-mono text-center text-amber-200 focus:outline-none focus:border-amber-400 uppercase">
-                    <button onclick="submitPasscode()" class="bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-sm hover:brightness-110 shrink-0">
-                        開啟卡片
-                    </button>
-                </div>
-            </div>
-
-            <div class="text-center text-xs text-slate-400 font-semibold uppercase tracking-wider">
-                — 或選擇下方刮刮樂卡片 —
-            </div>
-
-            <!-- 7 Cards Grid Overview -->
-            <div id="cardsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
-                <!-- Dynamically generated -->
-            </div>
-        </div>
-
-    </main>
-
-    <!-- MODAL 1: Claim Winner Form -->
-    <div id="claimModal" class="fixed inset-0 bg-black/90 backdrop-blur-lg z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-slate-900 border border-amber-500/50 rounded-2xl p-6 max-w-md w-full relative shadow-2xl my-auto text-left">
-            <button onclick="closeClaimModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-
-            <div class="text-center mb-4">
-                <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 mb-2 border border-amber-500/40">
-                    <i class="fa-solid fa-trophy text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-black text-amber-300">中獎領獎資料填寫</h3>
-                <p class="text-xs text-slate-400 mt-1">送出後本專屬卡片將自動鎖定以防止重複領獎</p>
-            </div>
-
-            <div class="bg-slate-950 rounded-xl p-3 mb-4 border border-slate-800 flex items-center gap-3">
-                <div id="modalPrizeIcon" class="w-12 h-12 shrink-0 bg-slate-900 rounded-lg p-1 border border-slate-700 flex items-center justify-center">
-                    <!-- SVG Thumbnail -->
-                </div>
-                <div>
-                    <span id="modalTicketCode" class="text-[10px] text-amber-400 font-bold tracking-wider">TICKET-1</span>
-                    <p id="modalPrizeTitle" class="text-sm font-bold text-slate-100 leading-tight">獎品名稱</p>
-                </div>
-            </div>
-
-            <form id="winnerForm" onsubmit="handleClaimSubmit(event)" class="space-y-3">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">姓名 / 稱呼 <span class="text-red-400">*</span></label>
-                    <input type="text" id="winnerName" required placeholder="例如：張小明" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-400">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">聯絡電話 <span class="text-red-400">*</span></label>
-                    <input type="tel" id="winnerPhone" required placeholder="例如：0912-345-678" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-400">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">寄送地址 / 便利商店門市 <span class="text-red-400">*</span></label>
-                    <textarea id="winnerAddress" required rows="2" placeholder="請填寫收件地址或 7-11/全家門市名稱" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-400"></textarea>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">備註資訊 (選填)</label>
-                    <input type="text" id="winnerNotes" placeholder="例如：方便收件時段" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-400">
-                </div>
-
-                <div class="pt-2">
-                    <button type="submit" class="w-full py-3 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-bold rounded-xl shadow-lg hover:brightness-110 transition flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-lock"></i> 確認送出並鎖定獎項
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL 2: Admin Panel & Links Generator -->
-    <div id="adminModal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-slate-900 border border-amber-500/40 rounded-2xl p-6 max-w-4xl w-full relative shadow-2xl my-auto text-left">
-            <button onclick="closeAdminModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-
-            <div class="flex items-center gap-3 mb-6">
-                <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
-                    <i class="fa-solid fa-user-shield text-xl"></i>
-                </div>
-                <div>
-                    <h3 class="text-xl font-bold text-amber-300">主辦人控制台：7份專屬邀請網址與得獎名單</h3>
-                    <p class="text-xs text-slate-400">複製下方對應專屬網址，分別發送給 7 位特定參加者（每人開自己的網址無法重複刮）</p>
-                </div>
-            </div>
-
-            <!-- Admin Actions Bar -->
-            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <div class="flex items-center gap-2">
-                    <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-3.5 py-2 rounded-lg transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-file-excel"></i> 下載 Excel (CSV)
-                    </button>
-                    <button onclick="copyAllText()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-semibold text-xs px-3.5 py-2 rounded-lg transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-copy"></i> 複製全部純文字得獎名單
-                    </button>
-                </div>
-                <button onclick="resetAllDataPrompt()" class="bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800/60 text-xs px-3 py-2 rounded-lg transition">
-                    <i class="fa-solid fa-arrow-rotate-left mr-1"></i> 重置所有卡片狀態
-                </button>
-            </div>
-
-            <!-- 7 Exclusive Links & Status Table -->
-            <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950 max-h-96 overflow-y-auto">
-                <table class="w-full text-left border-collapse text-xs">
-                    <thead>
-                        <tr class="bg-slate-800/90 text-amber-300 border-b border-slate-700">
-                            <th class="p-3">卡號/邀請碼</th>
-                            <th class="p-3">獎品名稱</th>
-                            <th class="p-3">專屬邀請連結 (發給參加者)</th>
-                            <th class="p-3">得獎人領獎資料</th>
-                            <th class="p-3 text-center">狀態</th>
-                        </tr>
-                    </thead>
-                    <tbody id="adminLinksTable" class="divide-y divide-slate-800/60 text-slate-300">
-                        <!-- JS Dynamic rendering -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-amber-400 text-slate-950 font-bold px-6 py-3 rounded-full shadow-2xl border-2 border-amber-200 text-sm z-50 transition-all duration-300 opacity-0 pointer-events-none flex items-center gap-2">
-        <i class="fa-solid fa-circle-info"></i>
-        <span id="toastMsg">提示內容</span>
-    </div>
-
-    <script>
-        /* ==========================================================================
-           1. PRIZE DEFINITIONS & SVG GRAPHICS
-           ========================================================================== */
-        const PRIZES = [
-            {
-                id: 1,
-                name: "寶瑞葉黃素 1罐",
-                sub: "1位 幸運得主",
-                svg: `<svg viewBox="0 0 200 180" class="w-full h-full max-h-40 filter drop-shadow"><rect x="30" y="25" width="80" height="130" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="3"/><rect x="30" y="25" width="80" height="30" rx="8" fill="#2563eb"/><text x="70" y="45" font-size="14" fill="#ffffff" font-weight="bold" text-anchor="middle">寶瑞</text><text x="70" y="75" font-size="11" fill="#1e40af" font-weight="900" text-anchor="middle">DHA + 葉黃素</text><circle cx="70" cy="105" r="16" fill="#fef08a" stroke="#f59e0b" stroke-width="2"/><ellipse cx="140" cy="70" rx="9" ry="6" fill="#991b1b"/><ellipse cx="140" cy="100" rx="9" ry="6" fill="#991b1b"/><ellipse cx="140" cy="130" rx="9" ry="6" fill="#991b1b"/></svg>`
-            },
-            {
-                id: 2,
-                name: "LE BORN 靜謐森林護手霜 / 旅行沐浴組",
-                sub: "1位 幸運得主",
-                svg: `<svg viewBox="0 0 200 180" class="w-full h-full max-h-40 filter drop-shadow"><rect x="25" y="25" width="150" height="95" rx="14" fill="#18181b" stroke="#52525b" stroke-width="3"/><text x="100" y="80" font-size="18" font-weight="900" fill="#a1a1aa" letter-spacing="4" text-anchor="middle">LE BORN</text><rect x="45" y="85" width="30" height="75" rx="4" fill="#ffffff" stroke="#cbd5e1"/><text x="60" y="115" font-size="6" fill="#0f172a" text-anchor="middle">HAND CREAM</text><rect x="90" y="95" width="26" height="65" rx="4" fill="#f8fafc"/><rect x="125" y="95" width="26" height="65" rx="4" fill="#e2e8f0"/></svg>`
-            },
-            {
-                id: 3,
-                name: "Taiwolf Classic 束口袋 / Good Night Spray 晚安睡眠噴霧",
-                sub: "1位 幸運得主",
-                svg: `<svg viewBox="0 0 200 180" class="w-full h-full max-h-40 filter drop-shadow"><path d="M 25 50 Q 65 40 105 50 L 115 155 Q 65 165 15 155 Z" fill="#18181b" stroke="#3f3f46" stroke-width="2"/><path d="M 65 85 L 50 105 L 65 100 L 80 105 Z" fill="#ffffff"/><rect x="135" y="60" width="35" height="95" rx="6" fill="#1c1917" stroke="#78350f" stroke-width="2"/><rect x="138" y="75" width="29" height="65" rx="3" fill="#064e3b"/><text x="152.5" y="100" font-size="7" fill="#fef08a" font-weight="bold" text-anchor="middle">Good Night</text></svg>`
-            },
-            {
-                id: 4,
-                name: "味全龍披巾 / 檜沐先生萬用雙效洗滌露隨身瓶",
-                sub: "1位 幸運得主",
-                svg: `<svg viewBox="0 0 200 180" class="w-full h-full max-h-40 filter drop-shadow"><path d="M 15 35 L 125 20 L 110 130 L 10 120 Z" fill="#dc2626" stroke="#991b1b" stroke-width="2"/><text x="62" y="75" font-size="16" fill="#ffffff" font-weight="900" transform="rotate(-8 62 75)" text-anchor="middle">鳴鳴鳴鳴</text><rect x="138" y="65" width="38" height="80" rx="8" fill="#451a03" stroke="#78350f" stroke-width="2"/><rect x="142" y="80" width="30" height="50" rx="2" fill="#fffbeb"/><text x="157" y="100" font-size="6" fill="#451a03" font-weight="bold" text-anchor="middle">HINOKI</text></svg>`
-            },
-            {
-                id: 5,
-                name: "雅聞大馬士革玫瑰淨白洗卸慕絲 / 霓淨思玻尿酸面膜 5片",
-                sub: "1位 幸運得主",
-                svg: `<svg viewBox="0 0 200 180" class="w-full h-full max-h-40 filter drop-shadow"><rect x="25" y="60" width="45" height="95" rx="10" fill="#f472b6" fill-opacity="0.8" stroke="#db2777" stroke-width="2"/><circle cx="47.5" cy="100" r="14" fill="#ffffff"/><text x="47.5" y="103" font-size="6" fill="#be185d" font-weight="bold" text-anchor="middle">ROSE</text><rect x="90" y="45" width="85" height="110" rx="6" fill="#ffffff" stroke="#0284c7" stroke-width="2"/><rect x="90" y="45" width="85" height="50" fill="#0284c7"/><text x="132.5" y="68" font-size="10" fill="#ffffff" font-weight="bold" text-anchor="middle">Neogence</text><text x="132.5" y="115" font-size="8" fill="#0369a1" font-weight="bold" text-anchor="middle">玻尿酸面膜</text></svg>`
-            },
-            {
-                id: 6,
-                name: "義美生技高蛋白 1盒",
-                sub: "共2位 幸運得主 (卡號 6 & 7)",
-                svg: `<svg viewBox="0 0 200 180" class="w-full h-full max-h-40 filter drop-shadow"><rect x="35" y="25" width="130" height="135" rx="8" fill="#ffffff" stroke="#166534" stroke-width="3"/><rect x="85" y="25" width="80" height="135" fill="#14532d"/><text x="60" y="70" font-size="32" fill="#15803d" font-weight="900" text-anchor="middle">W</text><text x="60" y="105" font-size="14" fill="#15803d" font-weight="900" text-anchor="middle">乳清蛋白</text><text x="125" y="55" font-size="12" fill="#86efac" font-weight="bold" text-anchor="middle">抹茶</text><circle cx="125" cy="95" r="18" fill="#22c55e"/><text x="125" y="99" font-size="9" fill="#ffffff" font-weight="bold" text-anchor="middle">21.5g</text></svg>`
-            }
-        ];
-
-        // 7 Fixed Cards Mapping (Card 6 & 7 are both Prize 6)
-        const CARDS_MAP = [
-            { ticketId: 1, passcode: "TICKET-1", prize: PRIZES[0] },
-            { ticketId: 2, passcode: "TICKET-2", prize: PRIZES[1] },
-            { ticketId: 3, passcode: "TICKET-3", prize: PRIZES[2] },
-            { ticketId: 4, passcode: "TICKET-4", prize: PRIZES[3] },
-            { ticketId: 5, passcode: "TICKET-5", prize: PRIZES[4] },
-            { ticketId: 6, passcode: "TICKET-6", prize: PRIZES[5] },
-            { ticketId: 7, passcode: "TICKET-7", prize: PRIZES[6] }
-        ];
-
-        const STORAGE_STATE = "scratch_app_cards_state_v2";
-        const STORAGE_WINNERS = "scratch_app_winners_v2";
-
-        let cardStates = {}; // { 1: { scratched: true/false, locked: true/false }, ... }
-        let winnersData = {}; // { 1: { name, phone, address, notes, timestamp }, ... }
-        let activeTicketId = null;
-        let isDrawing = false;
-
-        /* ==========================================================================
-           2. APP INITIALIZATION & ROUTING
-           ========================================================================== */
-        window.onload = function() {
-            loadStorage();
-            
-            // Check if URL has ?ticket=1~7 parameter
-            const urlParams = new URLSearchParams(window.location.search);
-            const ticketParam = urlParams.get('ticket');
-            
-            if (ticketParam && parseInt(ticketParam) >= 1 && parseInt(ticketParam) <= 7) {
-                openSingleTicketView(parseInt(ticketParam));
-            } else {
-                renderOverviewGrid();
-            }
-        };
-
-        function loadStorage() {
-            const savedCards = localStorage.getItem(STORAGE_STATE);
-            cardStates = savedCards ? JSON.parse(savedCards) : {};
-            CARDS_MAP.forEach(c => {
-                if (!cardStates[c.ticketId]) {
-                    cardStates[c.ticketId] = { scratched: false, locked: false };
-                }
-            });
-
-            const savedWinners = localStorage.getItem(STORAGE_WINNERS);
-            winnersData = savedWinners ? JSON.parse(savedWinners) : {};
-        }
-
-        function saveStorage() {
-            localStorage.setItem(STORAGE_STATE, JSON.stringify(cardStates));
-            localStorage.setItem(STORAGE_WINNERS, JSON.stringify(winnersData));
-        }
-
-        /* ==========================================================================
-           3. SINGLE TICKET MODE (LOCK PREVENT REPEAT SCRATCH)
-           ========================================================================== */
-        function openSingleTicketView(ticketId) {
-            activeTicketId = ticketId;
-            const cardObj = CARDS_MAP.find(c => c.ticketId === ticketId);
-            if (!cardObj) return;
-
-            document.getElementById("overviewView").classList.add("hidden");
-            document.getElementById("singleTicketView").classList.remove("hidden");
-            document.getElementById("headerSubText").innerText = `已載入您的專屬刮刮樂卡片 (${cardObj.passcode})`;
-
-            document.getElementById("currentTicketBadge").innerText = cardObj.passcode;
-            document.getElementById("prizeTitle").innerText = cardObj.prize.name;
-            document.getElementById("prizeSub").innerText = cardObj.prize.sub;
-            document.getElementById("prizeSvgContainer").innerHTML = cardObj.prize.svg;
-
-            const state = cardStates[ticketId] || { scratched: false, locked: false };
-            const winner = winnersData[ticketId];
-
-            const canvas = document.getElementById("ticketCanvas");
-            const claimBtn = document.getElementById("claimFormBtn");
-            const claimedBadge = document.getElementById("alreadyClaimedBadge");
-
-            // Setup Canvas Size
-            const box = document.getElementById("singleScratchBox");
-            const rect = box.getBoundingClientRect();
-            canvas.width = rect.width || 320;
-            canvas.height = rect.height || 400;
-            const ctx = canvas.getContext("2d");
-
-            if (state.locked || winner) {
-                // ALREADY CLAIMED & LOCKED PREVENT REPEAT
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                canvas.style.pointerEvents = "none";
-                claimBtn.classList.add("hidden");
-                claimedBadge.classList.remove("hidden");
-                claimedBadge.innerHTML = `<i class="fa-solid fa-lock text-emerald-400 mr-1"></i> 您已於 ${winner?.timestamp || '先前'} 完成領獎，卡片已鎖定！`;
-            } else if (state.scratched) {
-                // Scratched but form not submitted yet
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                canvas.style.pointerEvents = "none";
-                claimBtn.classList.remove("hidden");
-                claimedBadge.classList.add("hidden");
-            } else {
-                // Fresh Card to Scratch
-                canvas.style.pointerEvents = "auto";
-                claimBtn.classList.add("hidden");
-                claimedBadge.classList.add("hidden");
-                drawSilverCoating(ctx, canvas.width, canvas.height, ticketId);
-                setupScratchEvents(canvas, ctx);
-            }
-        }
-
-        function drawSilverCoating(ctx, width, height, ticketId) {
-            const grad = ctx.createLinearGradient(0, 0, width, height);
-            grad.addColorStop(0, '#c0c0c0');
-            grad.addColorStop(0.3, '#f1f5f9');
-            grad.addColorStop(0.6, '#94a3b8');
-            grad.addColorStop(1, '#cbd5e1');
-
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, width, height);
-
-            ctx.fillStyle = "rgba(0,0,0,0.06)";
-            for (let i = 0; i < width; i += 20) {
-                for (let j = 0; j < height; j += 20) {
-                    ctx.beginPath();
-                    ctx.arc(i + 10, j + 10, 3, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-
-            ctx.save();
-            ctx.fillStyle = "#1e293b";
-            ctx.font = "bold 20px Noto Sans TC, sans-serif";
-            ctx.textAlign = "center";
-            ctx.fillText(`卡片 #${ticketId}`, width / 2, height / 2 - 10);
-            ctx.font = "13px Noto Sans TC, sans-serif";
-            ctx.fillStyle = "#475569";
-            ctx.fillText("✨ 用手指刮開塗層 ✨", width / 2, height / 2 + 20);
-            ctx.restore();
-        }
-
-        function setupScratchEvents(canvas, ctx) {
-            function getPos(e) {
-                const rect = canvas.getBoundingClientRect();
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                return { x: clientX - rect.left, y: clientY - rect.top };
-            }
-
-            function scratch(e) {
-                if (!isDrawing) return;
-                e.preventDefault();
-                const pos = getPos(e);
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.beginPath();
-                ctx.arc(pos.x, pos.y, 25, 0, Math.PI * 2, false);
-                ctx.fill();
-
-                checkScratchPercent(canvas, ctx);
-            }
-
-            function start(e) { isDrawing = true; scratch(e); }
-            function stop() { isDrawing = false; }
-
-            const newCanvas = canvas.cloneNode(true);
-            canvas.parentNode.replaceChild(newCanvas, canvas);
-
-            newCanvas.addEventListener('mousedown', start);
-            newCanvas.addEventListener('mousemove', scratch);
-            window.addEventListener('mouseup', stop);
-
-            newCanvas.addEventListener('touchstart', start, { passive: false });
-            newCanvas.addEventListener('touchmove', scratch, { passive: false });
-            window.addEventListener('touchend', stop);
-        }
-
-        function checkScratchPercent(canvas, ctx) {
-            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const pixels = imgData.data;
-            let transparent = 0;
-            for (let i = 3; i < pixels.length; i += 16) {
-                if (pixels[i] === 0) transparent++;
-            }
-            const percent = (transparent / (pixels.length / 64)) * 100;
-
-            if (percent > 35 && !cardStates[activeTicketId].scratched) {
-                cardStates[activeTicketId].scratched = true;
-                saveStorage();
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                canvas.style.pointerEvents = "none";
-                document.getElementById("claimFormBtn").classList.remove("hidden");
-                fireConfetti();
-            }
-        }
-
-        function backToOverview() {
-            document.getElementById("singleTicketView").classList.add("hidden");
-            document.getElementById("overviewView").classList.remove("hidden");
-            document.getElementById("headerSubText").innerText = "請輸入您的邀請碼或開啟專屬邀請連結，刮開銀漆即可揭曉獎項與領獎！";
-            renderOverviewGrid();
-        }
-
-        function submitPasscode() {
-            const input = document.getElementById("passcodeInput").value.trim().toUpperCase();
-            const found = CARDS_MAP.find(c => c.passcode === input || `TICKET-${c.ticketId}` === input || `${c.ticketId}` === input);
-            if (found) {
-                openSingleTicketView(found.ticketId);
-            } else {
-                showToast("❌ 邀請碼無效，請輸入 TICKET-1 至 TICKET-7");
-            }
-        }
-
-        /* ==========================================================================
-           4. OVERVIEW GRID VIEW
-           ========================================================================== */
-        function renderOverviewGrid() {
-            const grid = document.getElementById("cardsGrid");
-            grid.innerHTML = "";
-
-            CARDS_MAP.forEach(item => {
-                const id = item.ticketId;
-                const state = cardStates[id] || { scratched: false, locked: false };
-                const winner = winnersData[id];
-
-                const card = document.createElement("div");
-                card.className = "w-full max-w-xs gold-border shadow-xl relative cursor-pointer hover:scale-102 transition duration-300";
-                card.onclick = () => openSingleTicketView(id);
-
-                let badgeHtml = "";
-                if (winner || state.locked) {
-                    badgeHtml = `<span class="bg-emerald-900/90 text-emerald-300 text-xs px-2.5 py-1 rounded-full border border-emerald-500/40 font-bold"><i class="fa-solid fa-lock mr-1"></i>已被領取鎖定</span>`;
-                } else if (state.scratched) {
-                    badgeHtml = `<span class="bg-amber-500/30 text-amber-300 text-xs px-2.5 py-1 rounded-full border border-amber-500/40 font-bold">已刮開未領獎</span>`;
-                } else {
-                    badgeHtml = `<span class="bg-slate-900/80 text-amber-400 text-xs px-2.5 py-1 rounded-full border border-amber-400/30">待刮開</span>`;
-                }
-
-                card.innerHTML = `
-                    <div class="bg-slate-900 rounded-xl p-5 flex flex-col items-center justify-between h-72 text-center relative overflow-hidden ${!state.locked ? 'shimmer-effect' : ''}">
-                        <div class="w-full flex justify-between items-center text-xs font-mono text-amber-300">
-                            <span>#00${id}</span>
-                            ${badgeHtml}
-                        </div>
-                        <div class="my-auto flex flex-col items-center">
-                            <div class="w-16 h-16 rounded-full bg-amber-400/20 border border-amber-300/50 flex items-center justify-center mb-2 text-amber-200">
-                                <i class="fa-solid ${winner ? 'fa-circle-check text-emerald-400' : 'fa-gift'} text-3xl"></i>
-                            </div>
-                            <h3 class="text-lg font-black text-amber-200">${item.passcode}</h3>
-                            <p class="text-xs text-slate-400 mt-1">${winner ? `得獎人：${winner.name}` : '點擊開啟專屬卡片'}</p>
-                        </div>
-                        <button class="w-full py-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-bold rounded-lg text-xs">
-                            ${winner ? '檢視中獎卡片' : '進入刮獎頁面'}
-                        </button>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        }
-
-        /* ==========================================================================
-           5. WINNER FORM CLAIMING & LOCKING
-           ========================================================================== */
-        function openClaimModal() {
-            if (!activeTicketId) return;
-            const item = CARDS_MAP.find(c => c.ticketId === activeTicketId);
-            if (!item) return;
-
-            document.getElementById("modalTicketCode").innerText = item.passcode;
-            document.getElementById("modalPrizeTitle").innerText = item.prize.name;
-            document.getElementById("modalPrizeIcon").innerHTML = item.prize.svg;
-
-            document.getElementById("claimModal").classList.remove("hidden");
-        }
-
-        function closeClaimModal() {
-            document.getElementById("claimModal").classList.add("hidden");
-        }
-
-        function handleClaimSubmit(e) {
-            e.preventDefault();
-            const name = document.getElementById("winnerName").value.trim();
-            const phone = document.getElementById("winnerPhone").value.trim();
-            const address = document.getElementById("winnerAddress").value.trim();
-            const notes = document.getElementById("winnerNotes").value.trim();
-
-            if (!name || !phone || !address) {
-                showToast("請填寫所有必填欄位！");
-                return;
-            }
-
-            const item = CARDS_MAP.find(c => c.ticketId === activeTicketId);
-
-            winnersData[activeTicketId] = {
-                ticketId: activeTicketId,
-                passcode: item.passcode,
-                prizeName: item.prize.name,
-                name: name,
-                phone: phone,
-                address: address,
-                notes: notes,
-                timestamp: new Date().toLocaleString("zh-TW")
-            };
-
-            // LOCK TICKET PERMANENTLY
-            cardStates[activeTicketId].scratched = true;
-            cardStates[activeTicketId].locked = true;
-
-            saveStorage();
-            closeClaimModal();
-            openSingleTicketView(activeTicketId);
-            showToast("🎉 得獎資料成功登記，卡片已鎖定完成！");
-            fireConfetti();
-        }
-
-        /* ==========================================================================
-           6. ADMIN PANEL & LINKS GENERATOR
-           ========================================================================== */
-        function openAdminModal() {
-            renderAdminTable();
-            document.getElementById("adminModal").classList.remove("hidden");
-        }
-
-        function closeAdminModal() {
-            document.getElementById("adminModal").classList.add("hidden");
-        }
-
-        function renderAdminTable() {
-            const tbody = document.getElementById("adminLinksTable");
-            tbody.innerHTML = "";
-
-            const baseUrl = window.location.origin + window.location.pathname;
-
-            CARDS_MAP.forEach(item => {
-                const id = item.ticketId;
-                const winner = winnersData[id];
-                const exclusiveUrl = `${baseUrl}?ticket=${id}`;
-
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td class="p-3 font-bold text-amber-400 font-mono">${item.passcode}</td>
-                    <td class="p-3 font-medium text-amber-200 max-w-xs">${item.prize.name}</td>
-                    <td class="p-3">
-                        <div class="flex items-center gap-1.5">
-                            <input type="text" readonly value="${exclusiveUrl}" class="w-48 md:w-64 bg-slate-900 border border-slate-700 px-2 py-1 rounded text-[11px] text-slate-300 font-mono select-all">
-                            <button onclick="copySingleUrl('${exclusiveUrl}')" class="bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 border border-amber-500/30 px-2 py-1 rounded text-[11px] shrink-0">
-                                複製網址
-                            </button>
-                        </div>
-                    </td>
-                    <td class="p-3">
-                        ${winner ? `
-                            <div class="font-bold text-slate-100">${winner.name} (${winner.phone})</div>
-                            <div class="text-[11px] text-slate-400 truncate max-w-xs">${winner.address}</div>
-                        ` : `<span class="text-slate-500">尚無人領獎</span>`}
-                    </td>
-                    <td class="p-3 text-center">
-                        ${winner ? 
-                            '<span class="bg-emerald-950 text-emerald-300 text-[10px] px-2 py-0.5 rounded-full border border-emerald-500/40">已鎖定</span>' : 
-                            '<span class="bg-slate-800 text-slate-400 text-[10px] px-2 py-0.5 rounded-full">未領取</span>'}
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function copySingleUrl(url) {
-            copyToClipboard(url);
-            showToast("📋 已複製該專屬邀請連結！");
-        }
-
-        function copyAllText() {
-            let text = "=== 刮刮樂得獎人名單彙整 ===\n\n";
-            CARDS_MAP.forEach(item => {
-                const winner = winnersData[item.ticketId];
-                text += `【邀請碼 ${item.passcode}】${item.prize.name}\n`;
-                if (winner) {
-                    text += `得獎人：${winner.name}\n電話：${winner.phone}\n地址：${winner.address}\n備註：${winner.notes || '無'}\n時間：${winner.timestamp}\n`;
-                } else {
-                    text += `狀態：尚未領獎\n`;
-                }
-                text += `-----------------------------------\n`;
-            });
-            copyToClipboard(text);
-            showToast("📋 已複製全部純文字得獎名單！");
-        }
-
-        function exportToCSV() {
-            let csv = "\uFEFF卡號邀請碼,獎品名稱,得獎姓名,電話,地址,備註,時間\n";
-            CARDS_MAP.forEach(item => {
-                const w = winnersData[item.ticketId];
-                if (w) {
-                    csv += `"${w.passcode}","${w.prizeName}","${w.name}","${w.phone}","${w.address}","${w.notes || ''}","${w.timestamp}"\n`;
-                } else {
-                    csv += `"${item.passcode}","${item.prize.name}","未領取","","","",""\n`;
-                }
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = `刮刮樂領獎名單_${new Date().toISOString().slice(0,10)}.csv`;
-            link.click();
-            showToast("📥 得獎名單 CSV 已匯出下載！");
-        }
-
-        function resetAllDataPrompt() {
-            if (confirm("確定要重置所有刮刮樂狀態與刪除領獎資料嗎？")) {
-                localStorage.removeItem(STORAGE_STATE);
-                localStorage.removeItem(STORAGE_WINNERS);
-                loadStorage();
-                renderOverviewGrid();
-                closeAdminModal();
-                showToast("已成功重置！");
-            }
-        }
-
-        /* Helper Functions */
-        function copyToClipboard(str) {
-            const el = document.createElement('textarea');
-            el.value = str;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-        }
-
-        function fireConfetti() {
-            if (typeof confetti === 'function') confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
-        }
-
-        function showToast(msg) {
-            const toast = document.getElementById("toast");
-            document.getElementById("toastMsg").innerText = msg;
-            toast.classList.remove("opacity-0", "pointer-events-none");
-            setTimeout(() => toast.classList.add("opacity-0", "pointer-events-none"), 3000);
-        }
-    </script>
-</body>
-</html>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>線上專屬刮刮樂</title>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    :root {
+      --primary: #e63946;
+      --primary-dark: #c1121f;
+      --gold: #ffb703;
+      --bg: #1a1a2e;
+      --card-bg: #16213e;
+      --text: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 15px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 500px;
+      position: relative;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      color: var(--gold);
+      margin-bottom: 5px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .admin-btn {
+      position: absolute;
+      right: 0;
+      top: 0;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    .card-container {
+      width: 100%;
+      max-width: 380px;
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border: 2px solid var(--gold);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .ticket-tag {
+      background: var(--primary);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+    }
+
+    .scratch-area {
+      position: relative;
+      width: 300px;
+      height: 300px;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+    }
+
+    .prize-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #fff;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 15px;
+      text-align: center;
+    }
+
+    .prize-img {
+      max-width: 85%;
+      max-height: 180px;
+      object-fit: contain;
+      margin-bottom: 10px;
+      border-radius: 8px;
+    }
+
+    .prize-title {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--primary-dark);
+      line-height: 1.4;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      touch-action: none;
+      z-index: 2;
+    }
+
+    .action-btn {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      background: var(--gold);
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+      background: #e5a300;
+    }
+
+    /* Modal 視窗 */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 999;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: #fff;
+      color: #333;
+      width: 100%;
+      max-width: 450px;
+      border-radius: 15px;
+      padding: 20px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    .modal-title {
+      font-size: 1.3rem;
+      color: var(--primary);
+      margin-bottom: 15px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .form-group input, .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #888;
+    }
