@@ -384,4 +384,103 @@
       if (isScratchedEnough) return;
       
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const pixels =
+      const pixels = imageData.data;
+      let clearCount = 0;
+
+      for (let i = 3; i < pixels.length; i += 4) {
+        if (pixels[i] === 0) clearCount++;
+      }
+
+      // 刮開面積超過 35% 自動 reveal 露出整張卡
+      if (clearCount / (pixels.length / 4) > 0.35) {
+        isScratchedEnough = true;
+        canvas.style.display = 'none';
+        document.getElementById('claimBtn').style.display = 'block';
+        confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+      }
+    }
+
+    function openClaimModal() { document.getElementById('claimModal').style.display = 'flex'; }
+    function openAdminModal() { 
+      renderAdminList();
+      document.getElementById('adminModal').style.display = 'flex'; 
+    }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const formData = {
+        ticket: currentTicket,
+        prize: ticketsData[currentTicket].name,
+        name: document.getElementById('userName').value,
+        time: new Date().toLocaleString()
+      };
+
+      localStorage.setItem(`scratch_ticket_${currentTicket}`, JSON.stringify(formData));
+      closeModal('claimModal');
+      showCompletedState(formData);
+      alert('領獎資料已順利送出！');
+    }
+
+    function showCompletedState(data) {
+      canvas.style.display = 'none';
+      const btn = document.getElementById('claimBtn');
+      btn.style.display = 'block';
+      btn.style.background = '#2a9d8f';
+      btn.innerText = `已完成領獎 (${data.name})`;
+      btn.onclick = () => {
+        alert(`【領獎明細】\n得獎人姓名：${data.name}`);
+      };
+    }
+
+    function resetCurrentTicket() {
+      if (confirm(`確定要重設第 ${currentTicket} 張卡片嗎？這將清空此卡片的領獎紀錄。`)) {
+        localStorage.removeItem(`scratch_ticket_${currentTicket}`);
+        location.reload();
+      }
+    }
+
+    function renderAdminList() {
+      const container = document.getElementById('adminList');
+      container.innerHTML = '';
+      for (let i = 1; i <= 7; i++) {
+        const data = localStorage.getItem(`scratch_ticket_${i}`);
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        if (data) {
+          const item = JSON.parse(data);
+          div.innerHTML = `<strong>卡片 ${i} (已領獎)</strong><br>獎項：${item.prize}<br>得獎人：${item.name}`;
+        } else {
+          div.innerHTML = `<strong>卡片 ${i}</strong>：尚未刮開 / 尚無領獎紀錄`;
+        }
+        container.appendChild(div);
+      }
+    }
+
+    function copyData() {
+      let result = "【刮刮樂得獎總名單】\n\n";
+      for (let i = 1; i <= 7; i++) {
+        const data = localStorage.getItem(`scratch_ticket_${i}`);
+        if (data) {
+          const item = JSON.parse(data);
+          result += `[卡號 ${i}] ${item.prize}\n姓名：${item.name}\n------------------\n`;
+        } else {
+          result += `[卡號 ${i}] 未領獎\n------------------\n`;
+        }
+      }
+      navigator.clipboard.writeText(result).then(() => alert('已複製所有得獎名單至剪貼簿！'));
+    }
+
+    function clearAllData() {
+      if (confirm('確定要清空這台電腦上的所有測試資料嗎？')) {
+        for (let i = 1; i <= 7; i++) {
+          localStorage.removeItem(`scratch_ticket_${i}`);
+        }
+        location.reload();
+      }
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
