@@ -45,20 +45,8 @@
       color: var(--gold);
       margin-bottom: 5px;
       text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    }
-
-    .admin-btn {
-      position: absolute;
-      right: 0;
-      top: 0;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.3);
-      color: #fff;
-      padding: 5px 10px;
-      border-radius: 15px;
-      font-size: 0.8rem;
       cursor: pointer;
-      z-index: 10;
+      user-select: none;
     }
 
     .card-container {
@@ -187,23 +175,23 @@
     }
 
     .form-group {
-      margin-bottom: 12px;
+      margin-bottom: 15px;
       text-align: left;
     }
 
     .form-group label {
       display: block;
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       font-weight: bold;
-      margin-bottom: 5px;
+      margin-bottom: 6px;
     }
 
-    .form-group input, .form-group textarea {
+    .form-group input {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 0.95rem;
+      border-radius: 8px;
+      font-size: 1rem;
     }
 
     .submit-btn {
@@ -246,8 +234,7 @@
 <body>
 
   <header>
-    <h1>幸運線上刮刮樂</h1>
-    <button class="admin-btn" onclick="openAdminModal()">主辦人專區</button>
+    <h1 id="headerTitle" onclick="handleTitleClick()">幸運線上刮刮樂</h1>
   </header>
 
   <div class="card-container">
@@ -265,34 +252,22 @@
     <div class="reset-link" onclick="resetCurrentTicket()">重設此張卡片 (重新刮)</div>
   </div>
 
-  <!-- 領獎資料 Modal -->
+  <!-- 領獎資料 Modal (僅保留姓名欄) -->
   <div id="claimModal" class="modal">
     <div class="modal-content">
       <span class="close-btn" onclick="closeModal('claimModal')">&times;</span>
-      <div class="modal-title">🎉 恭喜中獎！請填寫領獎資料</div>
+      <div class="modal-title">🎉 恭喜中獎！請填寫得獎人姓名</div>
       <form id="claimForm" onsubmit="handleFormSubmit(event)">
         <div class="form-group">
           <label>姓名 *</label>
-          <input type="text" id="userName" required placeholder="請輸入收件人姓名">
-        </div>
-        <div class="form-group">
-          <label>電話 *</label>
-          <input type="tel" id="userPhone" required placeholder="請輸入聯絡電話">
-        </div>
-        <div class="form-group">
-          <label>收件地址 / 超商門市 *</label>
-          <input type="text" id="userAddress" required placeholder="請輸入寄送地址或超商門市名稱">
-        </div>
-        <div class="form-group">
-          <label>備註</label>
-          <textarea id="userNote" rows="2" placeholder="是否有特殊注意事項"></textarea>
+          <input type="text" id="userName" required placeholder="請輸入得獎者姓名">
         </div>
         <button type="submit" class="submit-btn">確認送出領獎</button>
       </form>
     </div>
   </div>
 
-  <!-- 主辦人專區 Modal -->
+  <!-- 主辦人專區 Modal (隱藏式) -->
   <div id="adminModal" class="modal">
     <div class="modal-content">
       <span class="close-btn" onclick="closeModal('adminModal')">&times;</span>
@@ -304,7 +279,6 @@
   </div>
 
   <script>
-    // 7 張卡片對應資料 (包含上傳的圖片)
     const ticketsData = {
       "1": { name: "(1) 寶瑞葉黃素 1罐", img: "https://raw.githubusercontent.com/long0806449-cell/my-scratch-card/main/%E2%80%8B%E5%AF%B6%E7%91%9E%E8%91%89%E9%BB%83%E7%B4%A0.png" },
       "2": { name: "(2) LE BORN靜謐森林護手霜 / 旅行沐浴組", img: "https://raw.githubusercontent.com/long0806449-cell/my-scratch-card/main/%E2%80%8BLE%20BORN%E8%AD%B7%E6%89%8B%E9%9C%9C.jpg" },
@@ -315,23 +289,27 @@
       "7": { name: "(7) 義美生技高蛋白 1盒 (名額B)", img: "https://raw.githubusercontent.com/long0806449-cell/my-scratch-card/main/%E2%80%8B%E7%BE%A9%E7%BE%8E%E7%94%9F%E6%8A%80%E9%AB%98%E8%9B%8B%E7%99%BD.png" }
     };
 
-    // 解析 URL Ticket 參數
     const urlParams = new URLSearchParams(window.location.search);
     let currentTicket = urlParams.get('ticket') || "1";
+    let isAdminParam = urlParams.get('admin');
 
     const canvas = document.getElementById('scratchCanvas');
     const ctx = canvas.getContext('2d');
     let isDrawing = false;
     let isScratchedEnough = false;
+    let titleClickCount = 0;
+    let titleClickTimer = null;
 
-    // 初始化頁面
     function init() {
       const ticketInfo = ticketsData[currentTicket] || ticketsData["1"];
       document.getElementById('ticketTag').innerText = `專屬刮刮卡 - 第 ${currentTicket} 張`;
       document.getElementById('prizeTitle').innerText = ticketInfo.name;
       document.getElementById('prizeImg').src = ticketInfo.img;
 
-      // 檢查是否已鎖定/刮過
+      if (isAdminParam === 'true') {
+        openAdminModal();
+      }
+
       const savedData = localStorage.getItem(`scratch_ticket_${currentTicket}`);
       if (savedData) {
         showCompletedState(JSON.parse(savedData));
@@ -340,7 +318,18 @@
       }
     }
 
-    // 繪製塗層 Canvas
+    // 連點標題 3 次解鎖主辦人專區
+    function handleTitleClick() {
+      titleClickCount++;
+      clearTimeout(titleClickTimer);
+      if (titleClickCount >= 3) {
+        openAdminModal();
+        titleClickCount = 0;
+      } else {
+        titleClickTimer = setTimeout(() => { titleClickCount = 0; }, 1000);
+      }
+    }
+
     function setupCanvas() {
       canvas.width = 300;
       canvas.height = 300;
@@ -348,26 +337,20 @@
       document.getElementById('claimBtn').style.display = 'none';
       isScratchedEnough = false;
 
-      // 填滿銀灰色塗層
       ctx.fillStyle = '#C0C0C0';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 增加文字與裝飾點綴
       ctx.fillStyle = '#666';
       ctx.font = 'bold 20px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('刮開銀漆 揭曉獎項', 150, 150);
     }
 
-    // 刮卡手勢監聽
     function getPos(e) {
       const rect = canvas.getBoundingClientRect();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      return {
-        x: clientX - rect.left,
-        y: clientY - rect.top
-      };
+      return { x: clientX - rect.left, y: clientY - rect.top };
     }
 
     function scratch(e) {
@@ -390,7 +373,6 @@
     canvas.addEventListener('touchmove', scratch);
     canvas.addEventListener('touchend', () => isDrawing = false);
 
-    // 檢查刮開面積比例
     function checkScratchPercentage() {
       if (isScratchedEnough) return;
       
@@ -402,18 +384,14 @@
         if (pixels[i] === 0) clearCount++;
       }
 
-      // 刮開面積超過 35% 自動解鎖
       if (clearCount / (pixels.length / 4) > 0.35) {
         isScratchedEnough = true;
         canvas.style.display = 'none';
         document.getElementById('claimBtn').style.display = 'block';
-        
-        // 彩紙特效
         confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
       }
     }
 
-    // Modal 控制
     function openClaimModal() { document.getElementById('claimModal').style.display = 'flex'; }
     function openAdminModal() { 
       renderAdminList();
@@ -421,16 +399,12 @@
     }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-    // 表單送出處理
     function handleFormSubmit(e) {
       e.preventDefault();
       const formData = {
         ticket: currentTicket,
         prize: ticketsData[currentTicket].name,
         name: document.getElementById('userName').value,
-        phone: document.getElementById('userPhone').value,
-        address: document.getElementById('userAddress').value,
-        note: document.getElementById('userNote').value,
         time: new Date().toLocaleString()
       };
 
@@ -440,7 +414,6 @@
       alert('領獎資料已順利送出！');
     }
 
-    // 顯示已完成狀態
     function showCompletedState(data) {
       canvas.style.display = 'none';
       const btn = document.getElementById('claimBtn');
@@ -448,11 +421,10 @@
       btn.style.background = '#2a9d8f';
       btn.innerText = `已完成領獎 (${data.name})`;
       btn.onclick = () => {
-        alert(`【領獎明細】\n姓名：${data.name}\n電話：${data.phone}\n地址：${data.address}\n備註：${data.note || '無'}`);
+        alert(`【領獎資料】\n得獎人姓名：${data.name}\n登記時間：${data.time}`);
       };
     }
 
-    // 重設單張卡片
     function resetCurrentTicket() {
       if (confirm(`確定要重設第 ${currentTicket} 張卡片嗎？這將清空此卡片的領獎紀錄。`)) {
         localStorage.removeItem(`scratch_ticket_${currentTicket}`);
@@ -460,7 +432,6 @@
       }
     }
 
-    // 管理員清單與備份
     function renderAdminList() {
       const container = document.getElementById('adminList');
       container.innerHTML = '';
@@ -470,7 +441,7 @@
         div.className = 'list-item';
         if (data) {
           const item = JSON.parse(data);
-          div.innerHTML = `<strong>卡片 ${i} (已領獎)</strong><br>獎項：${item.prize}<br>得獎人：${item.name} | ${item.phone}<br>地址：${item.address}`;
+          div.innerHTML = `<strong>卡片 ${i} (已領獎)</strong><br>獎項：${item.prize}<br>得獎人：${item.name}<br>時間：${item.time}`;
         } else {
           div.innerHTML = `<strong>卡片 ${i}</strong>：尚未刮開 / 尚無領獎紀錄`;
         }
@@ -484,7 +455,7 @@
         const data = localStorage.getItem(`scratch_ticket_${i}`);
         if (data) {
           const item = JSON.parse(data);
-          result += `[卡號 ${i}] ${item.prize}\n姓名：${item.name}\n電話：${item.phone}\n地址：${item.address}\n備註：${item.note || '無'}\n------------------\n`;
+          result += `[卡號 ${i}] ${item.prize}\n得獎人：${item.name}\n時間：${item.time}\n------------------\n`;
         } else {
           result += `[卡號 ${i}] 未領獎\n------------------\n`;
         }
