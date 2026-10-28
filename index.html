@@ -79,6 +79,7 @@
       border-radius: 15px;
       overflow: hidden;
       box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+      background: #fff;
     }
 
     .prize-layer {
@@ -95,6 +96,7 @@
       justify-content: center;
       padding: 15px;
       text-align: center;
+      z-index: 1;
     }
 
     .prize-img {
@@ -120,7 +122,7 @@
       height: 100%;
       cursor: pointer;
       touch-action: none;
-      z-index: 2;
+      z-index: 10;
     }
 
     .action-btn {
@@ -240,7 +242,7 @@
     
     <div class="scratch-area">
       <div class="prize-layer">
-        <img id="prizeImg" class="prize-img" src="" alt="獎品圖片" onerror="handleImgError(this)">
+        <img id="prizeImg" class="prize-img" src="" alt="獎品圖片">
         <div id="prizeTitle" class="prize-title"></div>
       </div>
       <canvas id="scratchCanvas"></canvas>
@@ -277,36 +279,16 @@
   </div>
 
   <script>
-    // 兼具多種網址格式與備援路徑
+    const rawBase = "https://raw.githubusercontent.com/long0806449-cell/my-scratch-card/main/";
+
     const ticketsData = {
-      "1": { 
-        name: "(1) 寶瑞葉黃素 1罐", 
-        imgs: ["./prize1.png", "./prize1.PNG", "./寶瑞葉黃素.png", "https://raw.githubusercontent.com/long0806449-cell/my-scratch-card/main/%E2%80%8B%E5%AF%B6%E7%91%9E%E8%91%89%E9%BB%83%E7%B4%A0.png"] 
-      },
-      "2": { 
-        name: "(2) LE BORN靜謐森林護手霜 / 旅行沐浴組", 
-        imgs: ["./prize2.jpg", "./prize2.JPG", "./prize2.jpeg", "./LE BORN護手霜.jpg", "https://raw.githubusercontent.com/long0806449-cell/my-scratch-card/main/%E2%80%8BLE%20BORN%E8%AD%B7%E6%89%8B%E9%9C%9C.jpg"] 
-      },
-      "3": { 
-        name: "(3) Taiwolf Classic 束口袋 / Good Night Spray 晚安睡眠噴霧", 
-        imgs: ["./prize3.jpg", "./prize3.JPG", "./prize3.jpeg", "https://raw.githubusercontent.com/long0806449-cell/my-scratch-card/main/%E2%80%8BTaiwolf%20Classic%20%E6%9D%9F%E5%8F%A3%E8%A2%8B(%E5%8F%B0%E7%81%A3%E8%A3%BD%E9%80%A0)%20Good%20Night%20Spray%20%E6%99%9A%E5%AE%89%E7%9D%A1%E7%9C%A0%E5%99%B4%E9%9C%A7.jpg"] 
-      },
-      "4": { 
-        name: "(4) 味全龍披巾 / 檜沐先生萬用雙效洗滌露隨身瓶", 
-        imgs: ["./prize4.jpg", "./prize4.JPG", "./prize4.jpeg", "https://raw.githubusercontent.com/long0806449-cell/my-scratch-card/main/%E2%80%8B%E5%91%B3%E5%85%A8%E9%BE%8D%E6%8A%AB%E5%B7%BE%E6%AA%9C%E6%B2%90%E5%85%88%E7%94%9F%E8%90%AC%E7%94%A8%E9%9B%99%E6%95%88%E6%B4%97%E6%BB%A4%E9%9C%A7.jpg"] 
-      },
-      "5": { 
-        name: "(5) 雅聞大馬士革玫瑰慕絲 / 霓淨思面膜 5片", 
-        imgs: ["./prize5.jpg", "./prize5.JPG", "./prize5.jpeg", "https://raw.githubusercontent.com/long0806449-cell/my-scratch-card/main/%E2%80%8B%E9%9B%85%E8%81%9E%E5%A4%A7%E9%A6%AC%E5%A3%AB%E9%9D%A9%E Rose%E6%B0%A8%E5%9F%BA%E9%85%B8%E6%B7%A8%E7%99%BD%E6%B4%97%E5%8D%B8%E4%BA%8C%E7%94%A8%E6%85%95%E7%B5%B2%20%E9%9C%85%E6%B7%A8%E6%80%9D%E7%8E%BB%E5%B0%BF%E9%85%B8%E4%BF%9D%E6%BF%9F%E6%B0%B4%E5%B9%B3%E8%A1%A1%E8%B3%A6%E8%83%BD%E9%9D%A2%E8%86%9C.jpg"] 
-      },
-      "6": { 
-        name: "(6) 義美生技高蛋白 1盒 (名額A)", 
-        imgs: ["./prize6.png", "./prize6.PNG", "./義美生技高蛋白.png", "https://raw.githubusercontent.com/long0806449-cell/my-scratch-card/main/%E2%80%8B%E7%BE%A9%E7%BE%8E%E7%94%9F%E6%8A%80%E9%AB%98%E8%9B%8B%E7%99%BD.png"] 
-      },
-      "7": { 
-        name: "(7) 義美生技高蛋白 1盒 (名額B)", 
-        imgs: ["./prize6.png", "./prize6.PNG", "./義美生技高蛋白.png", "https://raw.githubusercontent.com/long0806449-cell/my-scratch-card/main/%E2%80%8B%E7%BE%A9%E7%BE%8E%E7%94%9F%E6%8A%80%E9%AB%98%E8%9B%8B%E7%99%BD.png"] 
-      }
+      "1": { name: "(1) 寶瑞葉黃素 1罐", img: rawBase + encodeURIComponent("​寶瑞葉黃素.png") },
+      "2": { name: "(2) LE BORN靜謐森林護手霜 / 旅行沐浴組", img: rawBase + encodeURIComponent("​LE BORN護手霜.jpg") },
+      "3": { name: "(3) Taiwolf Classic 束口袋 / Good Night Spray 晚安睡眠噴霧", img: rawBase + encodeURIComponent("​Taiwolf Classic 束口袋(台灣製造) Good Night Spray 晚安睡眠噴霧.jpg") },
+      "4": { name: "(4) 味全龍披巾 / 檜沐先生萬用雙效洗滌露隨身瓶", img: rawBase + encodeURIComponent("​味全龍披巾檜沐先生萬用雙效洗滌露.jpg") },
+      "5": { name: "(5) 雅聞大馬士革玫瑰慕絲 / 霓淨思面膜 5片", img: rawBase + encodeURIComponent("​雅聞大馬士革玫瑰氨基酸淨白洗卸二用慕絲 霓淨思玻尿酸保濕水平衡賦能面膜.jpg") },
+      "6": { name: "(6) 義美生技高蛋白 1盒 (名額A)", img: rawBase + encodeURIComponent("​義美生技高蛋白.png") },
+      "7": { name: "(7) 義美生技高蛋白 1盒 (名額B)", img: rawBase + encodeURIComponent("​義美生技高蛋白.png") }
     };
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -319,15 +301,14 @@
     let isScratchedEnough = false;
     let titleClickCount = 0;
     let titleClickTimer = null;
-    let currentImgIndex = 0;
 
     function init() {
       const ticketInfo = ticketsData[currentTicket] || ticketsData["1"];
       document.getElementById('ticketTag').innerText = `專屬刮刮卡 - 第 ${currentTicket} 張`;
       document.getElementById('prizeTitle').innerText = ticketInfo.name;
       
-      currentImgIndex = 0;
-      document.getElementById('prizeImg').src = ticketInfo.imgs[0];
+      const imgElem = document.getElementById('prizeImg');
+      imgElem.src = ticketInfo.img;
 
       if (isAdminParam === 'true') {
         openAdminModal();
@@ -338,15 +319,6 @@
         showCompletedState(JSON.parse(savedData));
       } else {
         setupCanvas();
-      }
-    }
-
-    // 自動測試備援圖片路徑
-    function handleImgError(img) {
-      const ticketInfo = ticketsData[currentTicket] || ticketsData["1"];
-      currentImgIndex++;
-      if (currentImgIndex < ticketInfo.imgs.length) {
-        img.src = ticketInfo.imgs[currentImgIndex];
       }
     }
 
@@ -368,11 +340,14 @@
       document.getElementById('claimBtn').style.display = 'none';
       isScratchedEnough = false;
 
+      // 重新覆蓋銀灰色塗層
+      ctx.globalCompositeOperation = 'source-over';
       ctx.fillStyle = '#C0C0C0';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      ctx.fillStyle = '#666';
-      ctx.font = 'bold 20px sans-serif';
+      // 繪製塗層上的文字
+      ctx.fillStyle = '#555555';
+      ctx.font = 'bold 22px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('刮開銀漆 揭曉獎項', 150, 150);
     }
@@ -389,6 +364,7 @@
       e.preventDefault();
       const pos = getPos(e);
 
+      // 刮除銀漆動作
       ctx.globalCompositeOperation = 'destination-out';
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, 25, 0, Math.PI * 2);
@@ -408,11 +384,4 @@
       if (isScratchedEnough) return;
       
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const pixels = imageData.data;
-      let clearCount = 0;
-
-      for (let i = 3; i < pixels.length; i += 4) {
-        if (pixels[i] === 0) clearCount++;
-      }
-
-      if (clearCount / (pixels.length / 4)
+      const pixels =
