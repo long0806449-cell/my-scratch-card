@@ -37,7 +37,6 @@
       margin-bottom: 20px;
       width: 100%;
       max-width: 500px;
-      position: relative;
     }
 
     h1 {
@@ -241,7 +240,7 @@
     
     <div class="scratch-area">
       <div class="prize-layer">
-        <img id="prizeImg" class="prize-img" src="" alt="獎品圖片">
+        <img id="prizeImg" class="prize-img" src="" alt="獎品圖片" onerror="handleImgError(this)">
         <div id="prizeTitle" class="prize-title"></div>
       </div>
       <canvas id="scratchCanvas"></canvas>
@@ -278,15 +277,36 @@
   </div>
 
   <script>
-    // 使用英文檔名，避免中文檔名造成轉譯破圖
+    // 兼具多種網址格式與備援路徑
     const ticketsData = {
-      "1": { name: "(1) 寶瑞葉黃素 1罐", img: "./prize1.png" },
-      "2": { name: "(2) LE BORN靜謐森林護手霜 / 旅行沐浴組", img: "./prize2.jpg" },
-      "3": { name: "(3) Taiwolf Classic 束口袋 / Good Night Spray 晚安睡眠噴霧", img: "./prize3.jpg" },
-      "4": { name: "(4) 味全龍披巾 / 檜沐先生萬用雙效洗滌露隨身瓶", img: "./prize4.jpg" },
-      "5": { name: "(5) 雅聞大馬士革玫瑰慕絲 / 霓淨思面膜 5片", img: "./prize5.jpg" },
-      "6": { name: "(6) 義美生技高蛋白 1盒 (名額A)", img: "./prize6.png" },
-      "7": { name: "(7) 義美生技高蛋白 1盒 (名額B)", img: "./prize6.png" }
+      "1": { 
+        name: "(1) 寶瑞葉黃素 1罐", 
+        imgs: ["./prize1.png", "./prize1.PNG", "./寶瑞葉黃素.png", "https://raw.githubusercontent.com/long0806449-cell/my-scratch-card/main/%E2%80%8B%E5%AF%B6%E7%91%9E%E8%91%89%E9%BB%83%E7%B4%A0.png"] 
+      },
+      "2": { 
+        name: "(2) LE BORN靜謐森林護手霜 / 旅行沐浴組", 
+        imgs: ["./prize2.jpg", "./prize2.JPG", "./prize2.jpeg", "./LE BORN護手霜.jpg", "https://raw.githubusercontent.com/long0806449-cell/my-scratch-card/main/%E2%80%8BLE%20BORN%E8%AD%B7%E6%89%8B%E9%9C%9C.jpg"] 
+      },
+      "3": { 
+        name: "(3) Taiwolf Classic 束口袋 / Good Night Spray 晚安睡眠噴霧", 
+        imgs: ["./prize3.jpg", "./prize3.JPG", "./prize3.jpeg", "https://raw.githubusercontent.com/long0806449-cell/my-scratch-card/main/%E2%80%8BTaiwolf%20Classic%20%E6%9D%9F%E5%8F%A3%E8%A2%8B(%E5%8F%B0%E7%81%A3%E8%A3%BD%E9%80%A0)%20Good%20Night%20Spray%20%E6%99%9A%E5%AE%89%E7%9D%A1%E7%9C%A0%E5%99%B4%E9%9C%A7.jpg"] 
+      },
+      "4": { 
+        name: "(4) 味全龍披巾 / 檜沐先生萬用雙效洗滌露隨身瓶", 
+        imgs: ["./prize4.jpg", "./prize4.JPG", "./prize4.jpeg", "https://raw.githubusercontent.com/long0806449-cell/my-scratch-card/main/%E2%80%8B%E5%91%B3%E5%85%A8%E9%BE%8D%E6%8A%AB%E5%B7%BE%E6%AA%9C%E6%B2%90%E5%85%88%E7%94%9F%E8%90%AC%E7%94%A8%E9%9B%99%E6%95%88%E6%B4%97%E6%BB%A4%E9%9C%A7.jpg"] 
+      },
+      "5": { 
+        name: "(5) 雅聞大馬士革玫瑰慕絲 / 霓淨思面膜 5片", 
+        imgs: ["./prize5.jpg", "./prize5.JPG", "./prize5.jpeg", "https://raw.githubusercontent.com/long0806449-cell/my-scratch-card/main/%E2%80%8B%E9%9B%85%E8%81%9E%E5%A4%A7%E9%A6%AC%E5%A3%AB%E9%9D%A9%E Rose%E6%B0%A8%E5%9F%BA%E9%85%B8%E6%B7%A8%E7%99%BD%E6%B4%97%E5%8D%B8%E4%BA%8C%E7%94%A8%E6%85%95%E7%B5%B2%20%E9%9C%85%E6%B7%A8%E6%80%9D%E7%8E%BB%E5%B0%BF%E9%85%B8%E4%BF%9D%E6%BF%9F%E6%B0%B4%E5%B9%B3%E8%A1%A1%E8%B3%A6%E8%83%BD%E9%9D%A2%E8%86%9C.jpg"] 
+      },
+      "6": { 
+        name: "(6) 義美生技高蛋白 1盒 (名額A)", 
+        imgs: ["./prize6.png", "./prize6.PNG", "./義美生技高蛋白.png", "https://raw.githubusercontent.com/long0806449-cell/my-scratch-card/main/%E2%80%8B%E7%BE%A9%E7%BE%8E%E7%94%9F%E6%8A%80%E9%AB%98%E8%9B%8B%E7%99%BD.png"] 
+      },
+      "7": { 
+        name: "(7) 義美生技高蛋白 1盒 (名額B)", 
+        imgs: ["./prize6.png", "./prize6.PNG", "./義美生技高蛋白.png", "https://raw.githubusercontent.com/long0806449-cell/my-scratch-card/main/%E2%80%8B%E7%BE%A9%E7%BE%8E%E7%94%9F%E6%8A%80%E9%AB%98%E8%9B%8B%E7%99%BD.png"] 
+      }
     };
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -299,12 +319,15 @@
     let isScratchedEnough = false;
     let titleClickCount = 0;
     let titleClickTimer = null;
+    let currentImgIndex = 0;
 
     function init() {
       const ticketInfo = ticketsData[currentTicket] || ticketsData["1"];
       document.getElementById('ticketTag').innerText = `專屬刮刮卡 - 第 ${currentTicket} 張`;
       document.getElementById('prizeTitle').innerText = ticketInfo.name;
-      document.getElementById('prizeImg').src = ticketInfo.img;
+      
+      currentImgIndex = 0;
+      document.getElementById('prizeImg').src = ticketInfo.imgs[0];
 
       if (isAdminParam === 'true') {
         openAdminModal();
@@ -315,6 +338,15 @@
         showCompletedState(JSON.parse(savedData));
       } else {
         setupCanvas();
+      }
+    }
+
+    // 自動測試備援圖片路徑
+    function handleImgError(img) {
+      const ticketInfo = ticketsData[currentTicket] || ticketsData["1"];
+      currentImgIndex++;
+      if (currentImgIndex < ticketInfo.imgs.length) {
+        img.src = ticketInfo.imgs[currentImgIndex];
       }
     }
 
@@ -383,95 +415,4 @@
         if (pixels[i] === 0) clearCount++;
       }
 
-      if (clearCount / (pixels.length / 4) > 0.35) {
-        isScratchedEnough = true;
-        canvas.style.display = 'none';
-        document.getElementById('claimBtn').style.display = 'block';
-        confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
-      }
-    }
-
-    function openClaimModal() { document.getElementById('claimModal').style.display = 'flex'; }
-    function openAdminModal() { 
-      renderAdminList();
-      document.getElementById('adminModal').style.display = 'flex'; 
-    }
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-
-    function handleFormSubmit(e) {
-      e.preventDefault();
-      const formData = {
-        ticket: currentTicket,
-        prize: ticketsData[currentTicket].name,
-        name: document.getElementById('userName').value,
-        time: new Date().toLocaleString()
-      };
-
-      localStorage.setItem(`scratch_ticket_${currentTicket}`, JSON.stringify(formData));
-      closeModal('claimModal');
-      showCompletedState(formData);
-      alert('領獎資料已順利送出！');
-    }
-
-    function showCompletedState(data) {
-      canvas.style.display = 'none';
-      const btn = document.getElementById('claimBtn');
-      btn.style.display = 'block';
-      btn.style.background = '#2a9d8f';
-      btn.innerText = `已完成領獎 (${data.name})`;
-      btn.onclick = () => {
-        alert(`【領獎明細】\n得獎人姓名：${data.name}`);
-      };
-    }
-
-    function resetCurrentTicket() {
-      if (confirm(`確定要重設第 ${currentTicket} 張卡片嗎？這將清空此卡片的領獎紀錄。`)) {
-        localStorage.removeItem(`scratch_ticket_${currentTicket}`);
-        location.reload();
-      }
-    }
-
-    function renderAdminList() {
-      const container = document.getElementById('adminList');
-      container.innerHTML = '';
-      for (let i = 1; i <= 7; i++) {
-        const data = localStorage.getItem(`scratch_ticket_${i}`);
-        const div = document.createElement('div');
-        div.className = 'list-item';
-        if (data) {
-          const item = JSON.parse(data);
-          div.innerHTML = `<strong>卡片 ${i} (已領獎)</strong><br>獎項：${item.prize}<br>得獎人：${item.name}`;
-        } else {
-          div.innerHTML = `<strong>卡片 ${i}</strong>：尚未刮開 / 尚無領獎紀錄`;
-        }
-        container.appendChild(div);
-      }
-    }
-
-    function copyData() {
-      let result = "【刮刮樂得獎總名單】\n\n";
-      for (let i = 1; i <= 7; i++) {
-        const data = localStorage.getItem(`scratch_ticket_${i}`);
-        if (data) {
-          const item = JSON.parse(data);
-          result += `[卡號 ${i}] ${item.prize}\n姓名：${item.name}\n------------------\n`;
-        } else {
-          result += `[卡號 ${i}] 未領獎\n------------------\n`;
-        }
-      }
-      navigator.clipboard.writeText(result).then(() => alert('已複製所有得獎名單至剪貼簿！'));
-    }
-
-    function clearAllData() {
-      if (confirm('確定要清空這台電腦上的所有測試資料嗎？')) {
-        for (let i = 1; i <= 7; i++) {
-          localStorage.removeItem(`scratch_ticket_${i}`);
-        }
-        location.reload();
-      }
-    }
-
-    window.onload = init;
-  </script>
-</body>
-</html>
+      if (clearCount / (pixels.length / 4)
