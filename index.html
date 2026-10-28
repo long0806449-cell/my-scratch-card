@@ -222,12 +222,15 @@
       font-size: 0.85rem;
     }
 
-    .reset-link {
+    .reset-btn {
       margin-top: 15px;
+      background: transparent;
       color: #888;
-      font-size: 0.8rem;
+      border: none;
+      font-size: 0.85rem;
       text-decoration: underline;
       cursor: pointer;
+      padding: 5px 10px;
     }
   </style>
 </head>
@@ -249,7 +252,7 @@
     </div>
 
     <button id="claimBtn" class="action-btn" style="display:none;" onclick="openClaimModal()">填寫領獎姓名</button>
-    <div class="reset-link" onclick="resetCurrentTicket()">重設此張卡片 (重新刮)</div>
+    <button class="reset-btn" onclick="resetCurrentTicket()">重設此張卡片 (重新刮)</button>
   </div>
 
   <!-- 領獎資料 Modal -->
@@ -279,10 +282,81 @@
   </div>
 
   <script>
-    // 自動生成帶有SVG與獎品名稱的圖像，完全不需要外載圖片檔案
     function createPrizeImageSVG(text) {
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">
         <rect width="100%" height="100%" fill="#f8f9fa" rx="10"/>
         <circle cx="150" cy="80" r="40" fill="#e63946" opacity="0.1"/>
         <text x="150" y="85" font-family="sans-serif" font-size="40" text-anchor="middle" fill="#e63946">🎁</text>
-        <text x="150" y="145" font-family="sans-
+        <text x="150" y="145" font-family="sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#1d3557">${text}</text>
+      </svg>`;
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    }
+
+    const ticketsData = {
+      "1": { name: "(1) 寶瑞葉黃素 1罐", img: createPrizeImageSVG("寶瑞葉黃素") },
+      "2": { name: "(2) LE BORN靜謐森林護手霜 / 旅行沐浴組", img: createPrizeImageSVG("LE BORN 護手霜組") },
+      "3": { name: "(3) Taiwolf Classic 束口袋 / Good Night Spray 晚安睡眠噴霧", img: createPrizeImageSVG("Taiwolf 束口袋/噴霧") },
+      "4": { name: "(4) 味全龍披巾 / 檜沐先生萬用雙效洗滌露隨身瓶", img: createPrizeImageSVG("味全龍披巾/洗滌露") },
+      "5": { name: "(5) 雅聞大馬士革玫瑰慕絲 / 霓淨思面膜 5片", img: createPrizeImageSVG("雅聞慕絲/霓淨思面膜") },
+      "6": { name: "(6) 義美生技高蛋白 1盒 (名額A)", img: createPrizeImageSVG("義美生技高蛋白") },
+      "7": { name: "(7) 義美生技高蛋白 1盒 (名額B)", img: createPrizeImageSVG("義美生技高蛋白") }
+    };
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let currentTicket = urlParams.get('ticket') || "1";
+    let isAdminParam = urlParams.get('admin');
+
+    const canvas = document.getElementById('scratchCanvas');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    let isScratchedEnough = false;
+    let titleClickCount = 0;
+    let titleClickTimer = null;
+
+    function init() {
+      const ticketInfo = ticketsData[currentTicket] || ticketsData["1"];
+      document.getElementById('ticketTag').innerText = `專屬刮刮卡 - 第 ${currentTicket} 張`;
+      document.getElementById('prizeTitle').innerText = ticketInfo.name;
+      
+      const imgElem = document.getElementById('prizeImg');
+      imgElem.src = ticketInfo.img;
+
+      if (isAdminParam === 'true') {
+        openAdminModal();
+      }
+
+      const savedData = localStorage.getItem(`scratch_ticket_${currentTicket}`);
+      if (savedData) {
+        showCompletedState(JSON.parse(savedData));
+      } else {
+        setupCanvas();
+      }
+    }
+
+    function handleTitleClick() {
+      titleClickCount++;
+      clearTimeout(titleClickTimer);
+      if (titleClickCount >= 3) {
+        openAdminModal();
+        titleClickCount = 0;
+      } else {
+        titleClickTimer = setTimeout(() => { titleClickCount = 0; }, 1000);
+      }
+    }
+
+    function setupCanvas() {
+      canvas.width = 300;
+      canvas.height = 300;
+      canvas.style.display = 'block';
+      document.getElementById('claimBtn').style.display = 'none';
+      isScratchedEnough = false;
+
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = '#C0C0C0';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#555555';
+      ctx.font = 'bold 22px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('刮開銀漆 揭曉獎項', 150, 150);
+    }
